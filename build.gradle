@@ -18,6 +18,8 @@ dependencies {
     implementation "org.scala-lang:scala-library:2.13.12"
     implementation "org.openjfx:javafx-controls:17.0.6"
     implementation "org.openjfx:javafx-fxml:17.0.6"
+    implementation "org.xerial:sqlite-jdbc:3.45.2.0"
+
     testImplementation platform('org.junit.jupiter:junit-jupiter:5.8.1')
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
 }
@@ -28,25 +30,22 @@ javafx {
 }
 
 application {
-    mainClass = 'org.example.MainKt'
+    mainClass = 'MainKt'
 }
 
-// --- THE FIX ---
-
-// 1. Configure Kotlin to target Java 17
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    kotlinOptions {
-        jvmTarget = "17"
+// ✔ Use consistent toolchains
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
-// 2. Configure Scala to use the Kotlin classes explicitly
-tasks.named('compileScala') {
-    // Force Scala to wait for Kotlin to finish
-    dependsOn tasks.named('compileKotlin')
+kotlin {
+    jvmToolchain(17)
+}
 
-    // BREAK THE CYCLE:
-    // Instead of 'sourceSets.main.output', we point EXACTLY to where Kotlin puts its files.
-    // This allows Scala to see Kotlin classes without waiting for the whole project to finish.
+// ✔ Force Scala to compile after Kotlin
+tasks.named('compileScala') {
+    dependsOn tasks.named('compileKotlin')
     classpath += files(tasks.named('compileKotlin').map { it.destinationDirectory })
 }
